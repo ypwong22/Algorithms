@@ -14,14 +14,20 @@ threading.stack_size(67108864)
 def main():
     # file = 'SCC_test.txt'
     # n = 15
+    # file = 'SCC_test_class.txt'
+    # n = 6
     file = 'SCC.txt'
     n = 875714
-    # file = 'input_mostlyCycles_30_800.txt'
-    # n = 800
     # file = 'input_mostlyCycles_2_8.txt'
-    # n = 8
+    # n = 10
     # file = 'input_mostlyCycles_22_200.txt'
     # n = 200
+    # file = 'input_mostlyCycles_30_800.txt'
+    # n = 800
+    # file = 'input_mostlyCycles_42_6400.txt'
+    # n = 6400
+    # file = 'input_mostlyCycles_61_160000.txt'
+    # n = 160000
 
     data = pd.read_csv(file, sep=' ', header=None, usecols=[0,1], 
                        names = ['tail', 'head'])
@@ -30,21 +36,17 @@ def main():
     data = data - 1
 
     # Re-formate the data into dictionary
-    G = {}
-    for i in range(n):
-        G[i] = []
+    G = {k:[] for k in range(n)}
     for i,p in data.iterrows():
         G[p['tail']].append(p['head'])
 
-    G_rev = {}
-    for i in range(n):
-        G_rev[i] = []
+    G_rev = {k:[] for k in range(n)}
     for i,p in data.iterrows():
         G_rev[p['head']].append(p['tail'])
 
-
     def scc_pass(Graph, visit_order):
-        topo_order = np.array(range(0,n), dtype=int)
+        # k-th element is finished in the k-th rank
+        fini_time = np.array(range(0,n), dtype=int)
         source_scc = np.array(range(0,n), dtype=int)
 
         visited = np.array([False]*n)
@@ -56,27 +58,27 @@ def main():
                 for i in front:
                     count = dfs(Graph, i, source, count)
                 source_scc[s] = source
-                topo_order[count] = s
-                count -= 1
+                fini_time[count] = s
+                count += 1 # should increment the count, not decrease
             return count
 
-        count = n - 1
+        count = 0
         for s in visit_order[::-1]:
             print(s)
-            count = dfs(Graph, visit_order[s], visit_order[s], count)
+            count = dfs(Graph, s, s, count)
 
-        return topo_order, source_scc
+        return fini_time, source_scc
 
 
-    # 1. Compute topological ordering on the reverse graph.
-    topo_order, _ = scc_pass(G, np.array(range(0,n), dtype=int))
+    # 1. Compute finishing time on the reverse graph.
+    fini_time, _ = scc_pass(G_rev, np.array(range(0,n), dtype=int))
 
     # 2. Compute the strongly connected components.
-    _, source_scc = scc_pass(G_rev, topo_order)
+    _, source_scc = scc_pass(G, fini_time)
 
     # 3. Print the strongly connected components.
     scc_ids = np.unique(source_scc)
-    
+
     if (len(scc_ids) < 10):
         for x in scc_ids:
             scc = np.where(source_scc==x)[0]
